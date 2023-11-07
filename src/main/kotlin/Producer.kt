@@ -1,4 +1,5 @@
 import net.named_data.jndn.*
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
 /*
@@ -12,8 +13,13 @@ class Counter : OnData, OnTimeout {
     override fun onData(interest: Interest?, data: Data) {
         callbackCount++;
         println("Got data packet with name ${data.name.toUri()}")
-        val receivedData = StandardCharsets.UTF_8.decode(data.content.buf()).toString()
-        println("Received: $receivedData")
+        if (data.content.buf() != null) {
+            val buffer = ByteBuffer.wrap(ByteArray(java.lang.Double.BYTES) { i -> data.content.buf()[i] }.reversedArray());
+            val receivedData = buffer.getDouble()
+            println("Received: $receivedData")
+        } else {
+            println("Received no data")
+        }
     }
 
     override fun onTimeout(interest: Interest?) {
@@ -23,16 +29,13 @@ class Counter : OnData, OnTimeout {
 
 }
 
-
 fun main(args: Array<String>) {
     Interest.setDefaultCanBePrefix(true)
     val face = Face();
-    val name = Name("/sensor/1/test");
+    val name = Name("/esp/2/data/temperature/${System.currentTimeMillis()}");
     val interest = Interest(name);
-    interest.interestLifetimeMilliseconds = 100.0;
+    interest.interestLifetimeMilliseconds = 3000.0;
     val counter = Counter();
-    val message = "Hallo Welt!";
-    name.append(message);
 
     println("Express name: ${name.toUri()}")
     face.expressInterest(interest, counter, counter);

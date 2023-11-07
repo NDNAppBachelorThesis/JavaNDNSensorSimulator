@@ -5,6 +5,7 @@ import net.named_data.jndn.security.identity.IdentityManager
 import net.named_data.jndn.security.identity.MemoryIdentityStorage
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage
 import net.named_data.jndn.util.Blob
+import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
@@ -26,10 +27,11 @@ class Sensor1Handler : OnInterestCallback {
 
         val temperature = 15 + (10 * Random.nextDouble())
         val response = Data(interest.name)
+        val respBuffer = ByteBuffer.allocate(java.lang.Double.BYTES).putDouble(temperature)
 
         when (method) {
             "data" -> {
-                response.content = Blob(temperature.toString())
+                response.content = Blob(ByteArray(java.lang.Double.BYTES) { i -> respBuffer[i] }.reversedArray())
             }
         }
 
