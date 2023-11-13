@@ -32,7 +32,7 @@ class Counter : OnData, OnTimeout {
 fun main(args: Array<String>) {
     Interest.setDefaultCanBePrefix(true)
     val face = Face();
-    val name = Name("/esp/2/data/temperature/${System.currentTimeMillis()}");
+    val name = Name("/esp/3/data/temperature/${System.currentTimeMillis()}");
     val interest = Interest(name);
     interest.interestLifetimeMilliseconds = 3000.0;
     val counter = Counter();
