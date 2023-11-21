@@ -4,6 +4,8 @@ import net.named_data.jndn.security.SecurityException
 import net.named_data.jndn.security.identity.IdentityManager
 import net.named_data.jndn.security.identity.MemoryIdentityStorage
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage
+import net.named_data.jndn.transport.TcpTransport
+import net.named_data.jndn.transport.UdpTransport
 import net.named_data.jndn.util.Blob
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
@@ -21,7 +23,7 @@ class Sensor1Handler : OnInterestCallback {
         interestFilterId: Long,
         filter: InterestFilter?
     ) {
-        println("OnInterest for ${interest.name}")
+        println("OnInterest on Sensor1Handler for ${interest.name}")
         val timestamp = interest.name.get(2).toTimestamp()
         val method = interest.name.get(3).toEscapedString()
 
@@ -34,6 +36,25 @@ class Sensor1Handler : OnInterestCallback {
                 response.content = Blob(ByteArray(java.lang.Double.BYTES) { i -> respBuffer[i] }.reversedArray())
             }
         }
+
+        face.putData(response);
+    }
+}
+
+
+class DiscoveryHandler : OnInterestCallback {
+    override fun onInterest(
+        prefix: Name,
+        interest: Interest,
+        face: Face,
+        interestFilterId: Long,
+        filter: InterestFilter?
+    ) {
+        println("OnInterest on DiscoveryHandler for ${interest.name}")
+
+        val response = Data(interest.name)
+        val respBuffer = ByteBuffer.allocate(java.lang.Double.BYTES).putDouble(322.69)
+        response.content = Blob("hallo".encodeToByteArray())
 
         face.putData(response);
     }
@@ -75,7 +96,8 @@ fun registerPrefixHandler(face: Face, runningCounter: AtomicInteger, name: Strin
 
 fun main() {
     Interest.setDefaultCanBePrefix(true)
-    val face = Face();
+//    val face = Face(UdpTransport(), UdpTransport.ConnectionInfo("127.0.0.1"));
+    val face = Face()
 
     val keyChain = buildTestKeyChain();
     keyChain.setFace(face);
@@ -83,8 +105,8 @@ fun main() {
 
     val runningCounter = AtomicInteger(0)
 
-    registerPrefixHandler(face, runningCounter, "/sensor/1", Sensor1Handler())
-    registerPrefixHandler(face, runningCounter, "/sensor/2", Sensor1Handler())
+//    registerPrefixHandler(face, runningCounter, "/sensor/1", Sensor1Handler())
+    registerPrefixHandler(face, runningCounter, "/esp/discovery", DiscoveryHandler())
 
     while (runningCounter.get() > 0) {
         face.processEvents();
