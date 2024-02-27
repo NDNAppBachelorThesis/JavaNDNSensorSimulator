@@ -1,4 +1,6 @@
 import net.named_data.jndn.*
+import net.named_data.jndn.encoding.Tlv0_3WireFormat
+import net.named_data.jndn.encoding.WireFormat
 import net.named_data.jndn.security.KeyChain
 import net.named_data.jndn.security.SecurityException
 import net.named_data.jndn.security.identity.IdentityManager
@@ -41,7 +43,6 @@ class Sensor1Handler : OnInterestCallback {
     }
 }
 
-
 class DiscoveryHandler : OnInterestCallback {
     override fun onInterest(
         prefix: Name,
@@ -56,6 +57,25 @@ class DiscoveryHandler : OnInterestCallback {
         val respBuffer = ByteBuffer.allocate(java.lang.Double.BYTES).putDouble(322.69)
         response.content = Blob("hallo".encodeToByteArray())
 
+        face.putData(response);
+    }
+}
+
+class FiwareHandler : OnInterestCallback {
+    override fun onInterest(
+        prefix: Name,
+        interest: Interest,
+        face: Face,
+        interestFilterId: Long,
+        filter: InterestFilter?
+    ) {
+        println("OnInterest on FiwareHandler for ${interest.name}")
+        val deviceId = interest.name[2].toEscapedString().toLong()
+        val value = ByteBuffer.wrap(ByteArray(8) { i -> interest.name[4].value.buf()[i] }.reversedArray()).double
+
+        println("$deviceId -> $value")
+
+        val response = Data(interest.name)
         face.putData(response);
     }
 }
@@ -96,8 +116,9 @@ fun registerPrefixHandler(face: Face, runningCounter: AtomicInteger, name: Strin
 
 fun main() {
     Interest.setDefaultCanBePrefix(true)
-//    val face = Face(UdpTransport(), UdpTransport.ConnectionInfo("127.0.0.1"));
-    val face = Face()
+    WireFormat.setDefaultWireFormat(Tlv0_3WireFormat.get())
+    val face = Face(TcpTransport(), TcpTransport.ConnectionInfo("192.168.178.177", 6363));
+//    val face = Face()
 
     val keyChain = buildTestKeyChain();
     keyChain.setFace(face);
@@ -106,7 +127,8 @@ fun main() {
     val runningCounter = AtomicInteger(0)
 
 //    registerPrefixHandler(face, runningCounter, "/sensor/1", Sensor1Handler())
-    registerPrefixHandler(face, runningCounter, "/esp/discovery", DiscoveryHandler())
+//    registerPrefixHandler(face, runningCounter, "/esp/discovery", DiscoveryHandler())
+    registerPrefixHandler(face, runningCounter, "/esp/fiware", FiwareHandler())
 
     while (runningCounter.get() > 0) {
         face.processEvents();
